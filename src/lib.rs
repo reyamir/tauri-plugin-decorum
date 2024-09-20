@@ -19,8 +19,6 @@ pub trait WebviewWindowExt {
     #[cfg(target_os = "macos")]
     fn set_traffic_lights_inset(&self, x: f32, y: f32) -> Result<&WebviewWindow, Error>;
     #[cfg(target_os = "macos")]
-    fn make_transparent(&self) -> Result<&WebviewWindow, Error>;
-    #[cfg(target_os = "macos")]
     fn set_window_level(&self, level: u32) -> Result<&WebviewWindow, Error>;
 }
 
@@ -162,37 +160,6 @@ impl<'a> WebviewWindowExt for WebviewWindow {
 
             traffic::position_traffic_lights(ns_window_handle, x.into(), y.into());
 
-            Ok(win)
-        })
-    }
-
-    /// Set the window background to transparent.
-    /// This helper function is different from Tauri's default
-    /// as it doesn't use the `transparent` flag or macOS Private APIs.
-    #[cfg(target_os = "macos")]
-    fn make_transparent(&self) -> Result<&WebviewWindow, Error> {
-        use cocoa::{
-            appkit::NSColor,
-            base::{id, nil},
-            foundation::NSString,
-        };
-
-        // Make webview background transparent
-        self.with_webview(|webview| unsafe {
-            let id = webview.inner();
-            let no: id = msg_send![class!(NSNumber), numberWithBool:0];
-            let _: id =
-                msg_send![id, setValue:no forKey: NSString::alloc(nil).init_str("drawsBackground")];
-        })?;
-
-        // Make window background transparent
-        ensure_main_thread(self, move |win| {
-            let ns_win = win.ns_window()? as id;
-            unsafe {
-                let win_bg_color =
-                    NSColor::colorWithSRGBRed_green_blue_alpha_(nil, 0.0, 0.0, 0.0, 0.0);
-                let _: id = msg_send![ns_win, setBackgroundColor: win_bg_color];
-            }
             Ok(win)
         })
     }
